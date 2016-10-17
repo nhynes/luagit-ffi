@@ -44,8 +44,7 @@ luagit.shutdown = function() luagit.C.git_libgit2_shutdown() end
 
 function luagit.getLastError()
   local giterr = luagit.C.giterr_last()
-  if giterr == nil then return nil end
-  return {
+  return giterr == nil and nil or {
     message = ffi.string(giterr.message),
     code = giterr.klass,
   }
