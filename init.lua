@@ -136,7 +136,7 @@ end
 function luagit.Repository:lookupTree(oid)
   oid = luagit.OID(oid)
   local tree = luagit.Tree()
-  local err = luagit.tree_lookup(tree.handle, self.handle[0], oid.handle)
+  local err = luagit.tree_lookup_prefix(tree.handle, self.handle[0], oid.handle, #oid)
   if err ~= 0 then error('Could not look up tree.') end
   tree.repository = self
   return tree
@@ -224,12 +224,15 @@ function luagit.StatusList:__init()
 end
 
 function luagit.OID:__init(existing)
-  if type(existing) == 'table' then
+  self.length = 41
+  if type(existing) == 'table' then       -- init from OID object
     self.handle = existing.handle
-  elseif type(existing) == 'cdata' then
+    self.length = existing.length
+  elseif type(existing) == 'cdata' then   -- init from handle
     self.handle = existing
-  elseif type(existing) == 'string' then
+  elseif type(existing) == 'string' then  -- init from string
     self.handle = ffi.new('git_oid')
+    self.length = #existing
     self:fromstr(existing)
   else
     self.handle = ffi.new('git_oid')
@@ -237,10 +240,13 @@ function luagit.OID:__init(existing)
 end
 
 function luagit.OID:__tostring()
-  local str = ffi.new('char[41]')
-  luagit.oid_tostr(str, 41, self.handle)
+  local cstrlen = #self + 1 -- null terminator
+  local str = ffi.new('char['..cstrlen..']')
+  luagit.oid_tostr(str, cstrlen, self.handle)
   return ffi.string(str)
 end
+
+function luagit.OID:__len() return self.length end
 
 luagit.C.git_libgit2_init()
 
